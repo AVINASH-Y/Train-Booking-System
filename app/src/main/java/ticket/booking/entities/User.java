@@ -1,64 +1,74 @@
 package ticket.booking.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
+@JsonNaming (PropertyNamingStrategy.SnakeCaseStrategy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User {
 
     private String name;
     private String password;
     private String hashedPassword;
-    private String userId;
     private List<Ticket> ticketsBooked;
+    private String userId;
 
-    public User(String name, String password, String hashedPassword, String userId, List<Ticket> ticketsBooked){
+    public User(String name, String password, String hashedPassword, List<Ticket> ticketsBooked, String userId){
         this.name = name;
         this.password = password;
         this.hashedPassword = hashedPassword;
-        this.userId = userId;
         this.ticketsBooked = ticketsBooked;
+        this.userId = userId;
     }
-
     public User(){}
 
-    public String getName(){
+    public String getName() {
         return name;
     }
+
     public String getPassword(){
         return password;
     }
-    public String getHashedPassword(){
+
+    public String getHashedPassword() {
         return hashedPassword;
     }
-    public String getUserId(){
-        return userId;
-    }
-    public List<Ticket> getTicketsBooked(){
+
+    public List<Ticket> getTicketsBooked() {
         return ticketsBooked;
     }
 
     public void printTickets(){
-        for (int i=0; i<ticketsBooked.size(); i++){
+        for (int i = 0; i<ticketsBooked.size(); i++){
             System.out.println(ticketsBooked.get(i).getTicketInfo());
         }
+    }
+
+    public String getUserId() {
+        return userId;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public void setHashedPassword(String hashedPassword) {
         this.hashedPassword = hashedPassword;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
     public void setTicketsBooked(List<Ticket> ticketsBooked) {
         this.ticketsBooked = ticketsBooked;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }
