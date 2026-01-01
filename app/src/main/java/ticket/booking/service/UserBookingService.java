@@ -1,17 +1,13 @@
 package ticket.booking.service;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ticket.booking.entities.Ticket;
 import ticket.booking.entities.Train;
 import ticket.booking.entities.User;
 import ticket.booking.util.UserServiceUtil;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class UserBookingService{
@@ -22,7 +18,7 @@ public class UserBookingService{
 
     private User user;
 
-    private final String USER_FILE_PATH = "app/src/main/java/ticket/booking/localDb/users.json";
+    private final String USER_FILE_PATH = "app/src/main/java/ticket/booking/localDB/users.json";
 
     public UserBookingService(User user) throws IOException {
         this.user = user;
@@ -34,7 +30,33 @@ public class UserBookingService{
     }
 
     private void loadUserListFromFile() throws IOException {
-        userList = objectMapper.readValue(new File(USER_FILE_PATH), new TypeReference<List<User>>() {});
+        File userFile = getFile(USER_FILE_PATH);
+        if (!userFile.exists()) {
+            // If file doesn't exist, create an empty list
+            userList = new ArrayList<>();
+            return;
+        }
+        if (userFile.length() == 0) {
+            // If file is empty, create an empty list
+            userList = new ArrayList<>();
+            return;
+        }
+        userList = objectMapper.readValue(userFile, new TypeReference<List<User>>() {});
+    }
+    
+    private File getFile(String path) {
+        File file = new File(path);
+        if (file.exists()) {
+            return file;
+        }
+        // Try alternative path from project root
+        String altPath = System.getProperty("user.dir") + "/" + path;
+        File altFile = new File(altPath);
+        if (altFile.exists()) {
+            return altFile;
+        }
+        // Return the original file path - will be created if needed
+        return file;
     }
 
     public Boolean loginUser(){
@@ -55,16 +77,24 @@ public class UserBookingService{
     }
 
     private void saveUserListToFile() throws IOException {
-        File usersFile = new File(USER_FILE_PATH);
+        File usersFile = getFile(USER_FILE_PATH);
+        // Ensure parent directories exist
+        usersFile.getParentFile().mkdirs();
         objectMapper.writeValue(usersFile, userList);
     }
 
     public void fetchBookings(){
+        if (user == null) {
+            System.out.println("Please login first to view your bookings.");
+            return;
+        }
         Optional<User> userFetched = userList.stream().filter(user1 -> {
             return user1.getName().equals(user.getName()) && UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
         }).findFirst();
         if(userFetched.isPresent()){
             userFetched.get().printTickets();
+        } else {
+            System.out.println("No bookings found.");
         }
     }
 

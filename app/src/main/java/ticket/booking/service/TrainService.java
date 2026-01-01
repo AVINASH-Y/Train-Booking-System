@@ -6,6 +6,7 @@ import ticket.booking.entities.Train;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -16,11 +17,33 @@ public class TrainService {
 
     private List<Train> trainList;
     private ObjectMapper objectMapper = new ObjectMapper();
-    private static final String TRAIN_DB_PATH = "../localDB/trains.json";
+    private static final String TRAIN_DB_PATH = "app/src/main/java/ticket/booking/localDB/trains.json";
 
     public TrainService() throws IOException {
-        File trains = new File(TRAIN_DB_PATH);
+        File trains = getFile(TRAIN_DB_PATH);
+        if (!trains.exists()) {
+            throw new IOException("Cannot find trains.json file. Tried: " + trains.getAbsolutePath());
+        }
+        if (trains.length() == 0) {
+            trainList = new ArrayList<>();
+            return;
+        }
         trainList = objectMapper.readValue(trains, new TypeReference<List<Train>>() {});
+    }
+    
+    private File getFile(String path) {
+        File file = new File(path);
+        if (file.exists()) {
+            return file;
+        }
+        // Try alternative path from project root
+        String altPath = System.getProperty("user.dir") + "/" + path;
+        File altFile = new File(altPath);
+        if (altFile.exists()) {
+            return altFile;
+        }
+        // Return the original file path
+        return file;
     }
 
     public List<Train> searchTrains(String source, String destination) {
@@ -61,7 +84,10 @@ public class TrainService {
 
     private void saveTrainListToFile() {
         try {
-            objectMapper.writeValue(new File(TRAIN_DB_PATH), trainList);
+            File trainFile = getFile(TRAIN_DB_PATH);
+            // Ensure parent directories exist
+            trainFile.getParentFile().mkdirs();
+            objectMapper.writeValue(trainFile, trainList);
         } catch (IOException e) {
             e.printStackTrace();
         }
