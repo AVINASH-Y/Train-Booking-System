@@ -122,7 +122,7 @@ public class UserBookingService{
         objectMapper.writeValue(usersFile, userList);
     }
 
-    public void fetchBookings(){
+    public void fetchBookings(String username){
         if (user == null) {
             System.out.println("Please login first to view your bookings.");
             return;
@@ -150,7 +150,7 @@ public class UserBookingService{
                 System.out.println("You have " + tickets.size() + " booking(s):");
                 System.out.println("----------------------------------------");
                 for (int i = 0; i < tickets.size(); i++) {
-                    System.out.println((i + 1) + ". " + tickets.get(i).getTicketInfo());
+                    System.out.println((i + 1) + ". " + tickets.get(i).getTicketInfo(username));
                 }
             }
         } else {
@@ -181,7 +181,20 @@ public class UserBookingService{
         }
     }
 
-    public void showBookings() {
+    public List<Ticket> getUserTickets() {
+        if (user == null) {
+            return null;
+        }
+        
+        User loggedInUser = getCurrentUser();
+        if (loggedInUser == null) {
+            return null;
+        }
+        
+        return loggedInUser.getTicketsBooked();
+    }
+    
+    public void showBookings(String username) {
         if (user == null) {
             System.out.println("Please login first.");
             return;
@@ -204,7 +217,7 @@ public class UserBookingService{
         System.out.println("----------------------------------------");
         for (int i = 0; i < tickets.size(); i++) {
             Ticket ticket = tickets.get(i);
-            System.out.println((i + 1) + ". " + ticket.getTicketInfo());
+            System.out.println((i + 1) + ". " + ticket.getTicketInfo(username));
         }
     }
     

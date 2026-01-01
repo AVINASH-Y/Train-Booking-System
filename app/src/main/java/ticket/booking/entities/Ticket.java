@@ -41,6 +41,29 @@ public class Ticket{
     public String getTicketInfo(){
         return String.format("Ticket ID: %s belongs to User %s from %s to %s on %s", ticketId, userId, source, destination, dateOfTravel);
     }
+    
+    public String getTicketInfo(String username){
+        String displayName = (username != null && !username.isEmpty()) ? username : userId;
+        return String.format("Ticket ID: %s | User: %s | Route: %s → %s | Date: %s", 
+            ticketId, displayName, source, destination, formatDate(dateOfTravel));
+    }
+    
+    private String formatDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return "N/A";
+        }
+        try {
+            // Parse ISO date and format it nicely
+            if (dateStr.contains("T")) {
+                String datePart = dateStr.split("T")[0];
+                String timePart = dateStr.split("T")[1].split("\\.")[0];
+                return datePart + " " + timePart;
+            }
+            return dateStr;
+        } catch (Exception e) {
+            return dateStr;
+        }
+    }
 
     public String getTicketId(){
         return ticketId;
