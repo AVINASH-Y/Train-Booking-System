@@ -426,7 +426,7 @@ This project is provided as-is for educational and demonstration purposes.
 
 ## 👤 Author
 
-Train Booking System - Java Console Application
+AVINASH YADDLAPALLI
 
 ---
 
