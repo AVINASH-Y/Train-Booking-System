@@ -49,6 +49,50 @@ public class TrainService {
     public List<Train> searchTrains(String source, String destination) {
         return trainList.stream().filter(train -> validTrain(train, source, destination)).collect(Collectors.toList());
     }
+    
+    /**
+     * Search trains in both directions (forward and reverse)
+     * Returns a list of trains that can travel from source to destination in either direction
+     */
+    public List<Train> searchTrainsBothDirections(String source, String destination) {
+        List<Train> forwardTrains = searchTrains(source, destination);
+        List<Train> reverseTrains = searchTrains(destination, source);
+        
+        // Combine both lists, avoiding duplicates based on trainId
+        List<Train> allTrains = new ArrayList<>(forwardTrains);
+        for (Train train : reverseTrains) {
+            boolean exists = allTrains.stream()
+                .anyMatch(t -> t.getTrainId() != null && t.getTrainId().equals(train.getTrainId()));
+            if (!exists) {
+                allTrains.add(train);
+            }
+        }
+        return allTrains;
+    }
+    
+    /**
+     * Check if a train can travel from source to destination and return the direction
+     * @return 1 for forward direction, -1 for reverse direction, 0 if not valid
+     */
+    public int getTrainDirection(Train train, String source, String destination) {
+        if (train == null || train.getStations() == null) {
+            return 0;
+        }
+        List<String> stationOrder = train.getStations();
+        int sourceIndex = stationOrder.indexOf(source.toLowerCase());
+        int destinationIndex = stationOrder.indexOf(destination.toLowerCase());
+        
+        if (sourceIndex == -1 || destinationIndex == -1) {
+            return 0;
+        }
+        
+        if (sourceIndex < destinationIndex) {
+            return 1; // Forward direction
+        } else if (sourceIndex > destinationIndex) {
+            return -1; // Reverse direction
+        }
+        return 0; // Same station
+    }
 
     public void addTrain(Train newTrain) {
         // Check if a train with the same trainId already exists

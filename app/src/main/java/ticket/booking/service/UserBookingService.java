@@ -3,12 +3,14 @@ package ticket.booking.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ticket.booking.entities.Ticket;
 import ticket.booking.entities.Train;
 import ticket.booking.entities.User;
 import ticket.booking.util.UserServiceUtil;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.UUID;
 
 public class UserBookingService{
     
@@ -60,18 +62,55 @@ public class UserBookingService{
     }
 
     public Boolean loginUser(){
-        Optional<User> foundUser = userList.stream().filter(user1 -> {
-            return user1.getName().equals(user.getName()) && UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
-        }).findFirst();
-        return foundUser.isPresent();
+        if (user == null || user.getName() == null || user.getPassword() == null) {
+            return Boolean.FALSE;
+        }
+        
+        try {
+            Optional<User> foundUser = userList.stream().filter(user1 -> {
+                if (user1 == null || user1.getName() == null || user1.getHashedPassword() == null) {
+                    return false;
+                }
+                // First check if username matches
+                if (!user1.getName().equals(user.getName())) {
+                    return false;
+                }
+                // Then safely check password
+                try {
+                    return UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
+                } catch (Exception e) {
+                    // If password check fails (invalid hash, etc.), return false
+                    return false;
+                }
+            }).findFirst();
+            return foundUser.isPresent();
+        } catch (Exception e) {
+            // Catch any unexpected exceptions during login
+            return Boolean.FALSE;
+        }
     }
 
     public Boolean signUp(User user1){
+        if (user1 == null || user1.getName() == null || user1.getName().trim().isEmpty()) {
+            System.out.println("✗ Invalid user data. Username cannot be empty.");
+            return Boolean.FALSE;
+        }
+        
+        // Check if user already exists
+        boolean userExists = userList.stream()
+            .anyMatch(u -> u.getName() != null && u.getName().equalsIgnoreCase(user1.getName()));
+        
+        if (userExists) {
+            System.out.println("✗ Username already exists. Please choose a different username.");
+            return Boolean.FALSE;
+        }
+        
         try{
             userList.add(user1);
             saveUserListToFile();
             return Boolean.TRUE;
         }catch (IOException ex){
+            System.out.println("✗ Error saving user data: " + ex.getMessage());
             return Boolean.FALSE;
         }
     }
@@ -89,37 +128,131 @@ public class UserBookingService{
             return;
         }
         Optional<User> userFetched = userList.stream().filter(user1 -> {
-            return user1.getName().equals(user.getName()) && UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
+            if (user1 == null || user1.getName() == null || user1.getHashedPassword() == null || 
+                user == null || user.getName() == null || user.getPassword() == null) {
+                return false;
+            }
+            if (!user1.getName().equals(user.getName())) {
+                return false;
+            }
+            try {
+                return UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
+            } catch (Exception e) {
+                return false;
+            }
         }).findFirst();
         if(userFetched.isPresent()){
-            userFetched.get().printTickets();
+            User loggedInUser = userFetched.get();
+            List<Ticket> tickets = loggedInUser.getTicketsBooked();
+            if (tickets == null || tickets.isEmpty()) {
+                System.out.println("You have no bookings yet.");
+            } else {
+                System.out.println("You have " + tickets.size() + " booking(s):");
+                System.out.println("----------------------------------------");
+                for (int i = 0; i < tickets.size(); i++) {
+                    System.out.println((i + 1) + ". " + tickets.get(i).getTicketInfo());
+                }
+            }
         } else {
             System.out.println("No bookings found.");
         }
     }
-
-        // todo: Complete this function
-         public Boolean cancelBooking(String ticketId){
     
-        Scanner s = new Scanner(System.in);
-        System.out.println("Enter the ticket id to cancel");
-        ticketId = s.next();
+    public User getCurrentUser() {
+        if (user == null || user.getName() == null || user.getPassword() == null) {
+            return null;
+        }
+        try {
+            return userList.stream().filter(user1 -> {
+                if (user1 == null || user1.getName() == null || user1.getHashedPassword() == null) {
+                    return false;
+                }
+                if (!user1.getName().equals(user.getName())) {
+                    return false;
+                }
+                try {
+                    return UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
+                } catch (Exception e) {
+                    return false;
+                }
+            }).findFirst().orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
-        if (ticketId == null || ticketId.isEmpty()) {
-            System.out.println("Ticket ID cannot be null or empty.");
+    public void showBookings() {
+        if (user == null) {
+            System.out.println("Please login first.");
+            return;
+        }
+        
+        User loggedInUser = getCurrentUser();
+        if (loggedInUser == null) {
+            System.out.println("User not found. Please login again.");
+            return;
+        }
+        
+        List<Ticket> tickets = loggedInUser.getTicketsBooked();
+        if (tickets == null || tickets.isEmpty()) {
+            System.out.println("You have no bookings to cancel.");
+            return;
+        }
+        
+        // Show user's tickets
+        System.out.println("Your bookings:");
+        System.out.println("----------------------------------------");
+        for (int i = 0; i < tickets.size(); i++) {
+            Ticket ticket = tickets.get(i);
+            System.out.println((i + 1) + ". " + ticket.getTicketInfo());
+        }
+    }
+    
+    public Boolean cancelBooking(String ticketId){
+        if (user == null) {
+            System.out.println("Please login first.");
+            return Boolean.FALSE;
+        }
+        
+        User loggedInUser = getCurrentUser();
+        if (loggedInUser == null) {
+            System.out.println("User not found. Please login again.");
+            return Boolean.FALSE;
+        }
+        
+        List<Ticket> tickets = loggedInUser.getTicketsBooked();
+        if (tickets == null || tickets.isEmpty()) {
+            System.out.println("You have no bookings to cancel.");
             return Boolean.FALSE;
         }
 
-        String finalTicketId1 = ticketId;  //Because strings are immutable
-        boolean removed = user.getTicketsBooked().removeIf(ticket -> ticket.getTicketId().equals(finalTicketId1));
+        if (ticketId == null || ticketId.isEmpty()) {
+            System.out.println("✗ Ticket ID cannot be empty.");
+            return Boolean.FALSE;
+        }
 
         String finalTicketId = ticketId;
-        user.getTicketsBooked().removeIf(Ticket -> Ticket.getTicketId().equals(finalTicketId));
+        boolean removed = tickets.removeIf(ticket -> ticket.getTicketId() != null && ticket.getTicketId().equals(finalTicketId));
+        
         if (removed) {
-            System.out.println("Ticket with ID " + ticketId + " has been canceled.");
-            return Boolean.TRUE;
-        }else{
-        System.out.println("No ticket found with ID " + ticketId);
+            loggedInUser.setTicketsBooked(tickets);
+            // Update user in the list
+            for (int i = 0; i < userList.size(); i++) {
+                if (userList.get(i).getUserId().equals(loggedInUser.getUserId())) {
+                    userList.set(i, loggedInUser);
+                    break;
+                }
+            }
+            try {
+                saveUserListToFile();
+                System.out.println("✓ Ticket with ID " + ticketId + " has been cancelled successfully.");
+                return Boolean.TRUE;
+            } catch (IOException e) {
+                System.out.println("✗ Error saving cancellation. Please try again.");
+                return Boolean.FALSE;
+            }
+        } else {
+            System.out.println("✗ No ticket found with ID: " + ticketId);
             return Boolean.FALSE;
         }
     }
@@ -133,28 +266,82 @@ public class UserBookingService{
             return new ArrayList<>();
         }
     }
+    
+    public List<Train> getTrainsBothDirections(String source, String destination){
+        try{
+            TrainService trainService = new TrainService();
+            return trainService.searchTrainsBothDirections(source, destination);
+        }catch(IOException ex){
+            return new ArrayList<>();
+        }
+    }
+    
+    public int getTrainDirection(Train train, String source, String destination) {
+        try{
+            TrainService trainService = new TrainService();
+            return trainService.getTrainDirection(train, source, destination);
+        }catch(IOException ex){
+            return 0;
+        }
+    }
 
     public List<List<Integer>> fetchSeats(Train train){
             return train.getSeats();
     }
 
-    public Boolean bookTrainSeat(Train train, int row, int seat) {
+    public Boolean bookTrainSeat(Train train, int row, int seat, String source, String destination, User loggedInUser) {
+        if (loggedInUser == null) {
+            System.out.println("✗ Please login first.");
+            return Boolean.FALSE;
+        }
+        
         try{
             TrainService trainService = new TrainService();
             List<List<Integer>> seats = train.getSeats();
-            if (row >= 0 && row < seats.size() && seat >= 0 && seat < seats.get(row).size()) {
-                if (seats.get(row).get(seat) == 0) {
-                    seats.get(row).set(seat, 1);
-                    train.setSeats(seats);
-                    trainService.addTrain(train);
-                    return true; // Booking successful
-                } else {
-                    return false; // Seat is already booked
+            if (row < 0 || row >= seats.size() || seat < 0 || seat >= seats.get(row).size()) {
+                System.out.println("✗ Invalid seat selection. Row: " + (row + 1) + ", Column: " + (seat + 1));
+                return Boolean.FALSE;
+            }
+            
+            if (seats.get(row).get(seat) == 0) {
+                // Book the seat
+                seats.get(row).set(seat, 1);
+                train.setSeats(seats);
+                trainService.addTrain(train);
+                
+                // Create a ticket
+                String ticketId = UUID.randomUUID().toString();
+                String dateOfTravel = java.time.LocalDateTime.now().plusDays(1).format(java.time.format.DateTimeFormatter.ISO_DATE_TIME);
+                
+                Ticket newTicket = new Ticket(ticketId, loggedInUser.getUserId(), source, destination, dateOfTravel, train);
+                
+                // Add ticket to user's bookings
+                List<Ticket> userTickets = loggedInUser.getTicketsBooked();
+                if (userTickets == null) {
+                    userTickets = new ArrayList<>();
                 }
+                userTickets.add(newTicket);
+                loggedInUser.setTicketsBooked(userTickets);
+                
+                // Update user in the list
+                for (int i = 0; i < userList.size(); i++) {
+                    if (userList.get(i).getUserId().equals(loggedInUser.getUserId())) {
+                        userList.set(i, loggedInUser);
+                        break;
+                    }
+                }
+                
+                // Save updated user list
+                saveUserListToFile();
+                
+                System.out.println("Ticket ID: " + ticketId);
+                return Boolean.TRUE;
             } else {
-                return false; // Invalid row or seat index
+                System.out.println("✗ Seat is already booked.");
+                return Boolean.FALSE;
             }
         }catch (IOException ex){
+            System.out.println("✗ Error processing booking: " + ex.getMessage());
             return Boolean.FALSE;
         }
     }
