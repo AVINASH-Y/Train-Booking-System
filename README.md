@@ -420,10 +420,6 @@ Potential improvements for future versions:
 - Multi-threading for concurrent bookings
 - Advanced search filters (date, time, train type)
 
-## 📄 License
-
-This project is provided as-is for educational and demonstration purposes.
-
 ## 👤 Author
 
 AVINASH YADDLAPALLI
